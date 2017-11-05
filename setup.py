@@ -4,12 +4,12 @@ from setuptools import setup
 
 setup(name='passdb',
       packages=['passdb'],
-      version='0.1',
+      version='0.2',
       description='PassDB (Password DB) for shared password management using GPG',
       author='Raghu Udiyar',
       author_email='raghusiddarth@gmail.com',
       url='https://github.com/raags/passdb',
-      download_url='https://github.com/raags/passdb/tarball/0.1',
+      download_url='https://github.com/raags/passdb/tarball/0.2',
       install_requires=['python-gnupg', 'argparse', 'pyyaml'],
       entry_points={
           'console_scripts': [
