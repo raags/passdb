@@ -2,18 +2,19 @@
 
 from setuptools import setup
 
-setup(name='pdb',
-      version='0.1.0',
-      description='PDB (Password DB) for shared password management',
+setup(name='passdb',
+      packages=['passdb'],
+      version='0.1',
+      description='PassDB (Password DB) for shared password management using GPG',
       author='Raghu Udiyar',
       author_email='raghusiddarth@gmail.com',
-      url='https://github.com/raags/pdb',
+      url='https://github.com/raags/passdb',
+      download_url='https://github.com/raags/passdb/tarball/0.1',
       install_requires=['python-gnupg', 'argparse', 'pyyaml'],
-      packages=['pdb'],
-      entry_points = {
-        'console_scripts': [
-        'pdb=pdb.pdb:main',
-        'manage-pdb=pdb.manage_pdb:main'
-        ],
+      entry_points={
+          'console_scripts': [
+              'passdb=passdb.passdb:main',
+              'manage-passdb=passdb.manage_passdb:main'
+          ],
       },
-     )
+      )

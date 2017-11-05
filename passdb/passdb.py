@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
 Securely retrieve secret and copy to clipboard (needs xerox module)
-Run directly to use the cli, or import the PStore class
+Run directly to use the cli, or import the Passdb class.
 """
 import os
 import imp
@@ -12,13 +12,13 @@ import urllib2
 import argparse
 
 
-class Pdb(object):
+class Passdb(object):
     """
     Provides simple access to the secret gpg file
     e.g. :
 
-    >>> from pdb import Pdb
-    >>> p = Pdb()
+    >>> from passdb import Passdb
+    >>> p = Passdb()
     >>> p.get('root')
     [u'blahblah']
     >>> p.get('console')
@@ -28,39 +28,44 @@ class Pdb(object):
     """
     _home = os.environ['HOME']
     _gpghome = '%s/.gnupg/' % _home
-    _config_path = os.path.expanduser('~/.pdb.cfg')
-    _pdbfile = os.path.expanduser('~/.pdb.gpg')
+    _config_path = os.path.expanduser('~/.passdb.cfg')
+    _passdbfile = os.path.expanduser('~/.passdb.gpg')
+
+    def log(self, msg):
+        if self.debug:
+            print "DEBUG: %s" % msg
 
     def __init__(self, passphrase=None, debug=False):
         self.passphrase = passphrase
         self.debug = debug
         self.load_config()
+        self.log("Using configuration file %s" % self._config_path)
 
     def load_config(self):
         try:
             config = imp.load_source('config', self._config_path)
             self._path = config.path
         except IOError:
-            self._path = raw_input("Please enter pdb source (http/file): ")
+            self._path = raw_input("Please enter passdb source (http/file): ")
             with open(self._config_path, 'w') as config:
                 config.write('path="{0}"'.format(self._path))
 
     def update(self):
-        pdbfile = urllib2.urlopen(self._path)
-        output = open(self._pdbfile, 'wb')
-        output.write(pdbfile.read())
+        passdbfile = urllib2.urlopen(self._path)
+        output = open(self._passdbfile, 'wb')
+        output.write(passdbfile.read())
         output.close()
 
     def get(self, key):
         gpg = gnupg.GPG(gnupghome=self._gpghome)
 
         try:
-            with open(self._pdbfile, 'rb') as f:
+            with open(self._passdbfile, 'rb') as f:
                 crypt = gpg.decrypt_file(f)
                 if crypt.status == 'need passphrase':
                     if not self.passphrase:
                         self.passphrase = getpass.getpass('Passphrase needed: ')
-                    with open(self._pdbfile, 'rb') as f:
+                    with open(self._passdbfile, 'rb') as f:
                         crypt = gpg.decrypt_file(f, passphrase=self.passphrase)
         except IOError:
             self.update()
@@ -72,15 +77,15 @@ class Pdb(object):
         except KeyError:
             return
         except TypeError:
-            raise ValueError("Could not get valid pdb data")
+            raise ValueError("Could not get valid passdb data")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Securely retrieve password \
                                                  and copy to clipboard")
-    parser.add_argument("-u", "--update",  action='store_true',
-                        help="Update passwords")
-    parser.add_argument("-d", "--display",  action='store_true',
+    parser.add_argument("-u", "--update", action='store_true',
+                        help="Update local caceh with remote passwords")
+    parser.add_argument("-d", "--display", action='store_true',
                         help="Dispaly on screen")
     parser.add_argument("type", nargs="?", help="console or root")
 
@@ -89,10 +94,10 @@ def main():
         parser.print_help()
         exit(1)
 
-    pstore = Pdb()
+    passdb = Passdb()
 
     if args.update:
-        pstore.update()
+        passdb.update()
 
     elif args.type:
         if args.display:
@@ -104,7 +109,7 @@ def main():
             except ImportError:
                 clipboard = False
 
-        passwd = pstore.get(args.type)
+        passwd = passdb.get(args.type)
         if isinstance(passwd, list):
             if clipboard:
                 xerox.copy(passwd[0])

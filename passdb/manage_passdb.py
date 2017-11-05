@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """
-Build and modify pdb password database
+Build and modify password database
 """
 import os
 import re
-import sys
 import time
 import gnupg
 import yaml
@@ -13,13 +12,14 @@ import getpass
 import argparse
 import logging
 
-class PDB(object):
+
+class MPassdb(object):
     """
     All password db management routines
     """
-    def __init__(self, pdbfile="pdb.gpg", keyserver="pool.sks-keyservers.net", passphrase=""):
-        self.pdbfile = os.path.abspath(pdbfile)
-        self._pdbfilebak = "{0}.bak".format(pdbfile)
+    def __init__(self, passdbfile="passdb.gpg", keyserver="pool.sks-keyservers.net", passphrase=""):
+        self.passdbfile = os.path.abspath(passdbfile)
+        self._passdbfilebak = "{0}.bak".format(passdbfile)
         self.gpg = gnupg.GPG()
         self.keyserver = keyserver
         self.passphrase = passphrase
@@ -36,7 +36,7 @@ class PDB(object):
 
     def list_users(self):
         """
-        Get user list from the encrypted pdb file
+        Get user list from the encrypted passdb file
         """
         crypt = self._decrypt_file()
 
@@ -93,12 +93,12 @@ class PDB(object):
 
     def _decrypt_file(self):
         try:
-            with open(self.pdbfile, 'rb') as f:
+            with open(self.passdbfile, 'rb') as f:
                 crypt = self.gpg.decrypt_file(f)
                 if crypt.status == 'need passphrase':
                     if not self.passphrase:
                         self.passphrase = getpass.getpass('Passphrase needed: ')
-                    with open(self.pdbfile, 'rb') as f:
+                    with open(self.passdbfile, 'rb') as f:
                         crypt = self.gpg.decrypt_file(f, passphrase=self.passphrase)
         except IOError as e:
                 raise e
@@ -212,16 +212,16 @@ class PDB(object):
         for email in emailid_list:
             self.logger.info("{0}".format(emailid_list))
         try:
-            shutil.copy(self.pdbfile, self._pdbfilebak)
+            shutil.copy(self.passdbfile, self._passdbfilebak)
         except IOError:
             pass
-        c = self.gpg.encrypt(data, emailid_list, output=self.pdbfile,
+        c = self.gpg.encrypt(data, emailid_list, output=self.passdbfile,
                              armor=False, always_trust=True)
 
-        if not os.path.exists(self.pdbfile):
-            print self.pdbfile
-            shutil.copy(self._pdbfilebak, self.pdbfile)
-            os.remove(self._pdbfilebak)
+        if not os.path.exists(self.passdbfile):
+            print self.passdbfile
+            shutil.copy(self._passdbfilebak, self.passdbfile)
+            os.remove(self._passdbfilebak)
 
         if c.status:
             print "Encryption complete"
@@ -231,7 +231,7 @@ class PDB(object):
             exit(1)
 
 def main():
-    cli = argparse.ArgumentParser(description="Utility to work with the pdb password store")
+    cli = argparse.ArgumentParser(description="Utility to work with the password store")
 
     group = cli.add_mutually_exclusive_group()
     group.add_argument("-lk", "--list-keys", help="List all top-level keys", action="store_true")
@@ -241,13 +241,13 @@ def main():
 
     group = cli.add_mutually_exclusive_group()
     group.add_argument("-lu", "--list-users", help="List all users", action="store_true")
-    group.add_argument("-au", "--add-user", help="Add user to pdb")
-    group.add_argument("-du", "--delete-user", help="Remove user from pdb")
+    group.add_argument("-au", "--add-user", help="Add user to passdb")
+    group.add_argument("-du", "--delete-user", help="Remove user from passdb")
 
     cli.add_argument("-p", "--passphrase", help="GPG passpharse", default="")
-    cli.add_argument("-f", "--file", help="Path to pdb file", default="pdb.gpg")
+    cli.add_argument("-f", "--file", help="Path to passdb file", default="passdb.gpg")
     cli.add_argument("-ks", "--keyserver", help="Keyserver to use", default="pool.sks-keyservers.net")
-    cli.add_argument("-i", "--init", help="initilize a new pdb database", action="store_true")
+    cli.add_argument("-i", "--init", help="initilize a new passdb database", action="store_true")
     cli.add_argument("-imp", "--import-all", help="Import public keys for all users", action="store_true")
     cli.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     cli.add_argument('-d', '--debug', action='store_true', help='Debug output')
@@ -259,28 +259,28 @@ def main():
     elif args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    pdb = PDB(pdbfile=args.file, keyserver=args.keyserver, passphrase=args.passphrase)
+    mpassdb = MPassdb(passdbfile=args.file, keyserver=args.keyserver, passphrase=args.passphrase)
 
     if args.init:
-        pdb.init()
+        mpassdb.init()
     elif args.list_keys:
-        pdb.list_keys()
+        mpassdb.list_keys()
     elif args.show_key:
-        pdb.show_key(args.show_key)
+        mpassdb.show_key(args.show_key)
     elif args.add_key:
-        y = pdb.add_key(args.add_key)
+        y = mpassdb.add_key(args.add_key)
     elif args.delete_key:
-        y = pdb.delete_key(args.delete_key)
+        y = mpassdb.delete_key(args.delete_key)
     elif args.import_all:
-        pdb.import_user_keys()
+        mpassdb.import_user_keys()
     elif args.list_users:
-        user_list = pdb.list_users()
+        user_list = mpassdb.list_users()
         for keyid, user in user_list:
             print "KeyID: {0} - User: {1}".format(keyid.encode('utf-8'), user.encode('utf-8'))
     elif args.add_user:
-        pdb.add_user(args.add_user)
+        mpassdb.add_user(args.add_user)
     elif args.delete_user:
-        pdb.delete_user(args.delete_user)
+        mpassdb.delete_user(args.delete_user)
     else:
         cli.print_help()
 
